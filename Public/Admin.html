@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>Admin · Beecee_specials Scents</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;800&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="Admin.css">
+</head>
+<body>
+<div id="login" class="panel"><h3>Admin sign in</h3>
+<form id="lf"><label>Email</label><input name="email" type="email" required autocomplete="username">
+<label>Password</label><input name="password" type="password" required autocomplete="current-password">
+<button class="btn">Sign in</button><p class="msg err" id="lerr"></p></form></div>
+<div id="dash" class="hide"><div class="bar"><b>Becee_specials Scents · Admin</b><button id="out" class="btn sm o">Log out</button></div>
+<div class="wrap"><div class="tabs"><button data-t="products" class="on">Products</button><button data-t="reviews">Reviews</button><button data-t="orders">Orders</button></div>
+<div id="t-products"><div class="panel" style="margin:0 auto 20px"><h3>Post a new product</h3>
+<form id="pf"><label>Name</label><input name="name" required maxlength="80">
+<label>Category</label><select name="category"><option>Perfume</option><option>Body Spray</option><option>Body Mist</option><option>Perfume Oil</option><option>Diffuser</option></select>
+<label>Price (₦)</label><input name="price" type="number" min="0" required>
+<label>Description</label><textarea name="description" rows="3" maxlength="300"></textarea>
+<label>Photo</label><input name="image" type="file" accept="image/*">
+<button class="btn" id="pbtn">Post product</button><p class="msg" id="pmsg"></p></form></div><div id="plist"></div></div>
+<div id="t-reviews" class="hide"></div><div id="t-orders" class="hide"></div></div></div>
+<div id="toast"></div><script src="Admin.js"></script></body></html>

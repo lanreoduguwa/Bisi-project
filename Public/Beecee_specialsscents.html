@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beecee_specialsscents</title>
+    <link rel="stylesheet" href="bisi.css">
+</head>
+<body>
+    <nav><div class="wrap"><div class="logo">Beecee_specials <span>Scents</span></div>
+<div><a href="#shop">Shop</a><a href="#about">Why us</a><a href="#reviews">Reviews</a><button class="btn o" id="cartBtn" style="margin-left:18px">🛒 Cart (<span id="cc">0</span>)</button></div></div></nav>
+
+<header class="hero">
+<div class="hero-slides" id="heroSlides"></div>
+<div class="hero-dots" id="heroDots"></div>
+<div class="wrap hero-copy">
+<h1>Wear a scent that speaks before you do.</h1>
+<p>Perfumes, body sprays, body mists, perfume oils and diffusers, crafted to leave a fresh, unforgettable trail.</p>
+<a class="btn" href="#shop">Shop the collection</a></div></header>
+
+<section id="shop"><div class="wrap">
+<div class="head"><h2>Our Collection</h2><p>Find your signature fragrance</p></div>
+<div class="chips" id="chips"></div>
+<div class="grid" id="grid"></div>
+</div></section>
+
+<section id="about" style="padding-top:0"><div class="wrap"><div class="feat">
+<div><b>🌊</b><h3>Fresh &amp; Long-lasting</h3><p style="color:var(--mut)">Scents that stay with you all day.</p></div>
+<div><b>💧</b><h3>Quality Blends</h3><p style="color:var(--mut)">Carefully selected fragrance notes.</p></div>
+<div><b>🚚</b><h3>Fast Delivery</h3><p style="color:var(--mut)">Order on WhatsApp, get it at your door.</p></div>
+</div></div></section>
+
+<section id="reviews"><div class="wrap">
+<div class="head"><h2>Customer Reviews</h2><p>Real words from happy customers</p></div>
+<div class="grid" id="rgrid"></div>
+<div class="panel" style="margin-top:32px"><h3 style="margin-bottom:4px">Share your experience</h3>
+<form id="rf">
+<label>Your name</label><input id="rn" required maxlength="40">
+<label>Rating</label><select id="rr"><option value="5">★★★★★ Excellent</option><option value="4">★★★★ Very good</option><option value="3">★★★ Good</option><option value="2">★★ Fair</option><option value="1">★ Poor</option></select>
+<label>Your testimony</label><textarea id="rt" rows="3" maxlength="300" required></textarea>
+<label>Screenshot (optional)</label><input id="ri" type="file" accept="image/*">
+<p style="margin:16px 0 0"><button class="btn" type="submit">Post review</button></p></form></div>
+</div></section>
+
+<section class="admin hide" id="admin"><div class="wrap">
+<div class="head"><h2>Post a New Product</h2><p>Store owner area</p></div>
+<div class="panel" id="gate">
+<label for="pin">Enter admin PIN</label><input id="pin" type="password" placeholder="PIN">
+<p style="margin:14px 0 0"><button class="btn" id="unlock">Unlock</button></p></div>
+<div class="hide" id="adm">
+<div class="panel"><form id="f">
+<label>Product name</label><input id="n" required maxlength="60">
+<label>Category</label><select id="c"></select>
+<label>Price (₦)</label><input id="p" type="number" min="0" required>
+<label>Description</label><textarea id="d" rows="3" maxlength="200" required></textarea>
+<label>Product photo</label><input id="im" type="file" accept="image/*">
+<p style="margin:16px 0 0"><button class="btn" type="submit">Post product</button></p></form></div>
+<h3 style="text-align:center;margin:26px 0 10px">Products</h3><div class="list" id="list" style="margin-top:0"></div><h3 style="text-align:center;margin:26px 0 10px">Reviews</h3><div class="list" id="rlist" style="margin-top:0"></div></div>
+</div></section>
+
+<div id="scrim" class="scrim hide"></div>
+<aside id="drawer" class="drawer"><div class="dh"><h3>Your Cart</h3><button class="x" id="closeCart" aria-label="Close">✕</button></div>
+<div id="cartItems"></div><div class="tot"><span>Total</span><b id="total">₦0</b></div>
+<form id="co"><input name="name" id="con" placeholder="Full name" required maxlength="80">
+<input name="phone" id="cop" placeholder="Phone number" required maxlength="20"><textarea name="address" id="coa" rows="2" placeholder="Delivery address" required maxlength="200"></textarea>
+<button class="btn" id="pay" style="width:100%">Place order</button><p class="msg err" id="cerr" style="color:#e11d48;font-size:13px"></p></form>
+<div id="payBox" class="hide">
+  <h3 style="margin-top:16px">Complete your payment</h3>
+  <p class="msg">Order <b id="poRef"></b> · Total <b id="poAmt"></b></p>
+  <div id="poDetails" class="pay-details"></div>
+  <p class="msg" style="color:var(--mut);font-size:13px">Send your payment, then tap below with your screenshot so we can confirm quickly.</p>
+  <a class="btn" style="width:100%;display:block;text-align:center;box-sizing:border-box" id="poWa" target="_blank" rel="noopener">Send payment proof on WhatsApp</a>
+  <p style="margin:14px 0 0"><button class="btn o" id="newOrder" style="width:100%">Start a new order</button></p>
+</div></aside>
+<div id="lb" class="hide"></div><div id="toast"></div>
+
+<footer><div class="logo" style="color:#fff">Beecee_specials <span>Scents</span></div>
+<p>Order via <a id="wa2" style="color:var(--sky)" href="#" target="_blank" rel="noopener">WhatsApp</a> · © <span id="y"></span> Beecee_specials Scents</p>
+<p>
+    Site developed by MAB
+</p></footer>
+
+<script src="bisi.js"></script>
+</body>
+</html>
