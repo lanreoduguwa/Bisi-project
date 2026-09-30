@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { CATS } = require('../config/constants');
+const { CATS } = require('../config/constant');
 
 const productSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true, maxlength: 80 },

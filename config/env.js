@@ -1,7 +1,7 @@
 // Loads .env and makes sure every required setting is present before anything else runs.
 require('dotenv').config();
 
-const REQUIRED = ['MONGODB_URI', 'JWT_SECRET', 'ADMIN_EMAIL', 'ADMIN_PASSWORD_HASH', 'CLOUDINARY_URL', 'WHATSAPP_NUMBER'];
+const REQUIRED = ['MONGO_URI', 'JWT_SECRET', 'ADMIN_EMAIL', 'ADMIN_PASSWORD_HASH', 'CLOUDINARY_URL', 'WHATSAPP_NUMBER'];
 
 for (const key of REQUIRED) {
   if (!process.env[key]) {

@@ -35,27 +35,11 @@
 <div class="grid" id="rgrid"></div>
 <div class="panel" style="margin-top:32px"><h3 style="margin-bottom:4px">Share your experience</h3>
 <form id="rf">
-<label>Your name</label><input id="rn" required maxlength="40">
-<label>Rating</label><select id="rr"><option value="5">★★★★★ Excellent</option><option value="4">★★★★ Very good</option><option value="3">★★★ Good</option><option value="2">★★ Fair</option><option value="1">★ Poor</option></select>
-<label>Your testimony</label><textarea id="rt" rows="3" maxlength="300" required></textarea>
-<label>Screenshot (optional)</label><input id="ri" type="file" accept="image/*">
-<p style="margin:16px 0 0"><button class="btn" type="submit">Post review</button></p></form></div>
-</div></section>
-
-<section class="admin hide" id="admin"><div class="wrap">
-<div class="head"><h2>Post a New Product</h2><p>Store owner area</p></div>
-<div class="panel" id="gate">
-<label for="pin">Enter admin PIN</label><input id="pin" type="password" placeholder="PIN">
-<p style="margin:14px 0 0"><button class="btn" id="unlock">Unlock</button></p></div>
-<div class="hide" id="adm">
-<div class="panel"><form id="f">
-<label>Product name</label><input id="n" required maxlength="60">
-<label>Category</label><select id="c"></select>
-<label>Price (₦)</label><input id="p" type="number" min="0" required>
-<label>Description</label><textarea id="d" rows="3" maxlength="200" required></textarea>
-<label>Product photo</label><input id="im" type="file" accept="image/*">
-<p style="margin:16px 0 0"><button class="btn" type="submit">Post product</button></p></form></div>
-<h3 style="text-align:center;margin:26px 0 10px">Products</h3><div class="list" id="list" style="margin-top:0"></div><h3 style="text-align:center;margin:26px 0 10px">Reviews</h3><div class="list" id="rlist" style="margin-top:0"></div></div>
+<label>Your name</label><input id="rn" name="name" required maxlength="40">
+<label>Rating</label><select id="rr" name="stars"><option value="5">★★★★★ Excellent</option><option value="4">★★★★ Very good</option><option value="3">★★★ Good</option><option value="2">★★ Fair</option><option value="1">★ Poor</option></select>
+<label>Your testimony</label><textarea id="rt" name="text" rows="3" maxlength="300" required></textarea>
+<label>Screenshot (optional)</label><input id="ri" name="image" type="file" accept="image/*">
+<p style="margin:16px 0 0"><button class="btn" type="submit" id="rbtn">Post review</button></p><p class="msg" id="rmsg" style="color:var(--mut);font-size:13px;margin-top:8px">Reviews appear after approval.</p></form></div>
 </div></section>
 
 <div id="scrim" class="scrim hide"></div>
@@ -76,9 +60,7 @@
 
 <footer><div class="logo" style="color:#fff">Beecee_specials <span>Scents</span></div>
 <p>Order via <a id="wa2" style="color:var(--sky)" href="#" target="_blank" rel="noopener">WhatsApp</a> · © <span id="y"></span> Beecee_specials Scents</p>
-<p>
-    Site developed by MAB
-</p></footer>
+<p>Site developed by MAB</p></footer>
 
 <script src="bisi.js"></script>
 </body>
