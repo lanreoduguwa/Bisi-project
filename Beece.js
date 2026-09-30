@@ -36,8 +36,10 @@ app.use('/api', orderRoutes);
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 
 // ---------- Pages (frontend lives in /public) ----------
-app.use(express.static(path.join(__dirname, 'public')));
-app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+const HOME = 'Beecee_specialsscents.html';
+app.use(express.static(path.join(__dirname, 'public'), { index: HOME }));
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', HOME)));
+app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'Admin.html')));
 
 // Must be registered after every route.
 app.use(errorHandler);
