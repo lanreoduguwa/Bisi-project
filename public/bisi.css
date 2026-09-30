@@ -1,7 +1,7 @@
 :root{--sky:#38bdf8;--sky2:#e0f2fe;--blue:#1d4ed8;--bg:#f0f9ff;--card:#fff;--ink:#0b1b3a;--mut:#5b6b8c;--line:#d5e6f7;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#07142b;--card:#0e2247;--ink:#eaf4ff;--mut:#9db4d6;--line:#1c3763;--sky2:#0e2a52}}
-:root[data-theme="dark"]{--bg:#07142b;--card:#0e2247;--ink:#eaf4ff;--mut:#9db4d6;--line:#1c3763;--sky2:#0e2a52}
+/* Dark mode intentionally disabled — the shop always uses the sky-blue brand theme,
+   regardless of the visitor's phone/browser setting, for consistent branding. */
 html{scroll-behavior:smooth;scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.6 Poppins,system-ui,sans-serif}
@@ -37,11 +37,16 @@ nav a{color:var(--ink);text-decoration:none;font-weight:500;margin-left:18px;fon
 .hero h1{font-size:clamp(34px,7vw,64px);line-height:1.1;max-width:640px}
 .hero p{max-width:480px;opacity:.95;margin:16px 0 26px}
 .hero .btn{background:#fff;color:var(--blue)}
-/* On phones the text would sit on top of the bottle, so use a faded full-cover background */
+/* On phones, the text sits over a dark panel at the bottom of the photo instead of fading the whole image */
 @media(max-width:700px){
-  .hero{min-height:0}
-  .hero-slides .slide{background-size:cover;background-position:center top}
-  .hero-slides .slide.on{opacity:.55}
+  .hero{min-height:0;padding:0}
+  .hero-slides .slide{background-size:cover;background-position:center 30%}
+  /* Keep the photo clear on mobile; add a solid dark panel behind the text instead
+     of fading the whole image (which was turning everything into a grey smear). */
+  .hero-slides:after{background:linear-gradient(180deg,rgba(7,20,50,.15) 0%,rgba(7,20,50,.55) 42%,rgba(7,20,50,.92) 62%,rgba(7,20,50,.96) 100%)}
+  .hero-copy{padding:170px 20px 40px}
+  .hero h1{font-size:clamp(30px,9vw,42px)}
+  .hero-dots{bottom:14px}
 }
 section{padding:60px 0}
 .head{text-align:center;margin-bottom:28px}.head h2{font-size:32px}.head p{color:var(--mut);margin:6px 0 0}

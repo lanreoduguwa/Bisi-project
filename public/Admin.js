@@ -1,159 +1,73 @@
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
 const naira = n => '₦' + Number(n).toLocaleString();
-const CATS = ['Perfume', 'Body Spray', 'Body Mist', 'Perfume Oil', 'Diffuser'];
-let products = [], filter = 'All', cart = [];
-try { cart = JSON.parse(localStorage.getItem('bs_cart')) || []; } catch {}
-const saveCart = () => { try { localStorage.setItem('bs_cart', JSON.stringify(cart)); } catch {} };
 function toast(t) { const e = $('toast'); e.textContent = t; e.classList.add('s'); setTimeout(() => e.classList.remove('s'), 2400); }
 async function api(u, o) {
   const r = await fetch(u, o), j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(j.error || 'Something went wrong');
+  if (!r.ok) { if (r.status === 401 && u !== '/api/admin/login') showLogin(); throw new Error(j.error || 'Something went wrong'); }
   return j;
 }
-function bottle(cat) {
-  const g = `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7dd3fc"/><stop offset="1" stop-color="#1d4ed8"/></linearGradient></defs>`;
-  const shapes = {
-    'Perfume': `<rect x="70" y="90" width="60" height="70" rx="10" fill="url(#g)"/><rect x="90" y="65" width="20" height="25" fill="#1e3a8a"/><rect x="82" y="55" width="36" height="12" rx="3" fill="#0b1b3a"/>`,
-    'Body Spray': `<rect x="80" y="65" width="40" height="100" rx="8" fill="url(#g)"/><rect x="90" y="48" width="20" height="17" fill="#1e3a8a"/><rect x="96" y="40" width="20" height="8" rx="2" fill="#0b1b3a"/>`,
-    'Body Mist': `<rect x="76" y="70" width="48" height="90" rx="14" fill="url(#g)"/><rect x="88" y="52" width="24" height="18" fill="#38bdf8"/><rect x="84" y="44" width="32" height="8" rx="3" fill="#0b1b3a"/>`,
-    'Perfume Oil': `<rect x="78" y="95" width="44" height="65" rx="8" fill="url(#g)"/><rect x="92" y="72" width="16" height="23" fill="#1e3a8a"/><circle cx="100" cy="66" r="10" fill="#0b1b3a"/>`,
-    'Diffuser': `<path d="M65 100h70l-8 60H73z" fill="url(#g)"/><rect x="88" y="90" width="24" height="10" fill="#1e3a8a"/><path d="M96 90L80 40M100 90l2-52M104 90l20-48" stroke="#0b1b3a" stroke-width="3"/>`
-  };
-  const s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#e0f2fe"/>${g}${shapes[cat] || shapes.Perfume}</svg>`;
-  return 'data:image/svg+xml;utf8,' + encodeURIComponent(s);
-}
-const pic = (src, alt, cat) => `<img loading="lazy" alt="${esc(alt)}" src="${esc(src || bottle(cat))}" data-cat="${esc(cat)}">`;
-// If a product photo fails to load, swap in the illustrated bottle. Registered ONCE.
-// The "true" (capture) is needed because image error events don't bubble.
-document.addEventListener('error', e => {
-  const img = e.target;
-  if (img.tagName === 'IMG' && img.dataset.cat && !img.dataset.failed) {
-    img.dataset.failed = '1';
-    img.src = bottle(img.dataset.cat);
-  }
-}, true);
+const J = { 'Content-Type': 'application/json' };
+async function run(fn) { try { await fn(); } catch (er) { toast(er.message); } }
 
-function renderShop() {
-  $('chips').innerHTML = ['All', ...CATS].map(c => `<button class="chip ${c === filter ? 'on' : ''}" data-c="${c}">${c}</button>`).join('');
-  const list = products.filter(p => filter === 'All' || p.category === filter);
-  $('grid').innerHTML = list.length ? list.map(p => `<div class="card">${p.inStock ? '' : '<span class="sold">Sold out</span>'}${pic(p.image, p.name, p.category)}
-    <div class="b"><div class="tag">${esc(p.category)}</div><h3>${esc(p.name)}</h3><p>${esc(p.description)}</p>
-    <div class="row"><span class="price">${naira(p.price)}</span><button class="btn sm" data-add="${p._id}" ${p.inStock ? '' : 'disabled'}>Add to cart</button></div></div></div>`).join('')
-    : '<p class="empty">No products in this category yet.</p>';
-}
-function renderCart() {
-  let total = 0, n = 0;
-  $('cartItems').innerHTML = cart.length ? cart.map(c => {
-    const p = products.find(x => x._id === c.id); if (!p) return '';
-    total += p.price * c.qty; n += c.qty;
-    return `<div class="ci"><span>${esc(p.name)}<br><small>${naira(p.price)}</small></span><span><button data-dec="${c.id}">−</button> ${c.qty} <button data-inc="${c.id}">+</button> <button data-rm="${c.id}">✕</button></span></div>`;
-  }).join('') : '<p class="msg">Your cart is empty.</p>';
-  $('total').textContent = naira(total); $('cc').textContent = n; $('pay').disabled = !cart.length;
-  saveCart();
-}
-const openCart = o => { $('drawer').classList.toggle('open', o); $('scrim').classList.toggle('hide', !o); };
-$('cartBtn').onclick = () => openCart(true); $('closeCart').onclick = $('scrim').onclick = () => openCart(false);
-$('chips').onclick = e => { if (e.target.dataset.c) { filter = e.target.dataset.c; renderShop(); } };
-$('grid').onclick = e => {
-  const id = e.target.dataset.add; if (!id) return;
-  const c = cart.find(x => x.id === id); c ? c.qty = Math.min(20, c.qty + 1) : cart.push({ id, qty: 1 });
-  $('payBox').classList.add('hide'); $('co').classList.remove('hide');
-  renderCart(); toast('Added to cart');
-};
-$('cartItems').onclick = e => {
-  const d = e.target.dataset, id = d.inc || d.dec || d.rm; if (!id) return;
-  const c = cart.find(x => x.id === id); if (!c) return;
-  if (d.inc) c.qty = Math.min(20, c.qty + 1);
-  if (d.dec) c.qty--;
-  if (d.rm || c.qty < 1) cart = cart.filter(x => x.id !== id);
-  renderCart();
-};
-$('co').onsubmit = async e => {
-  e.preventDefault(); $('cerr').textContent = ''; $('pay').disabled = true; $('pay').textContent = 'Placing order…';
-  try {
-    const f = Object.fromEntries(new FormData(e.target));
-    const r = await api('/api/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...f, items: cart }) });
-    showPaymentInfo(r);
-    e.target.classList.add('hide');
-    cart = []; renderCart();
-  } catch (er) { $('cerr').textContent = er.message; }
-  $('pay').disabled = !cart.length; $('pay').textContent = 'Place order';
-};
-function showPaymentInfo(r) {
-  $('poRef').textContent = r.reference;
-  $('poAmt').textContent = naira(r.amount);
-  const p = r.payment, rows = [];
-  if (p.bankAccountNumber) rows.push(['Bank', p.bankName], ['Account name', p.bankAccountName], ['Account number', p.bankAccountNumber]);
-  if (p.opayAccountNumber) rows.push(['Opay', p.opayAccountName], ['Opay number', p.opayAccountNumber]);
-  $('poDetails').innerHTML = rows.map(([l, v]) => `<div class="pd-row"><span>${esc(l)}</span><b>${esc(v)}</b></div>`).join('');
-  const msg = encodeURIComponent(`Hello Becee_specials Scents, I have made payment for order ${r.reference} (${naira(r.amount)}). Attached is my payment screenshot.`);
-  $('poWa').href = `https://wa.me/${r.whatsapp}?text=${msg}`;
-  $('payBox').classList.remove('hide');
+function showLogin() { $('login').classList.remove('hide'); $('dash').classList.add('hide'); }
+function showDash() {
+  $('login').classList.add('hide'); $('dash').classList.remove('hide');
+  loadProducts().catch(() => {}); loadReviews().catch(() => {}); loadOrders().catch(() => {});
 }
 
-// reviews
+$('lf').onsubmit = async e => {
+  e.preventDefault(); $('lerr').textContent = '';
+  try { await api('/api/admin/login', { method: 'POST', headers: J, body: JSON.stringify(Object.fromEntries(new FormData(e.target))) }); e.target.reset(); showDash(); }
+  catch (er) { $('lerr').textContent = er.message; }
+};
+$('out').onclick = async () => { await api('/api/admin/logout', { method: 'POST' }).catch(() => {}); showLogin(); };
+document.querySelector('.tabs').onclick = e => {
+  const t = e.target.dataset.t; if (!t) return;
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b === e.target));
+  ['products', 'reviews', 'orders'].forEach(x => $('t-' + x).classList.toggle('hide', x !== t));
+};
+
+async function loadProducts() {
+  const ps = await api('/api/products');
+  $('plist').innerHTML = ps.map(p => `<div class="item"><span style="display:flex;gap:10px;align-items:center">${p.image ? `<img alt="" src="${esc(p.image)}">` : ''}<span>${esc(p.name)}<br><small>${esc(p.category)} · ${naira(p.price)} ${p.inStock ? '' : '· SOLD OUT'}</small></span></span>
+    <span class="g"><button class="link" data-stock="${p._id}">${p.inStock ? 'Mark sold out' : 'Mark in stock'}</button><button class="link d" data-delp="${p._id}">Delete</button></span></div>`).join('') || '<p class="msg">No products yet.</p>';
+}
+$('pf').onsubmit = async e => {
+  e.preventDefault(); $('pbtn').disabled = true; $('pmsg').className = 'msg';
+  try { await api('/api/admin/products', { method: 'POST', body: new FormData(e.target) }); e.target.reset(); $('pmsg').textContent = ''; toast('Product posted'); await loadProducts(); }
+  catch (er) { $('pmsg').textContent = er.message; $('pmsg').className = 'msg err'; }
+  $('pbtn').disabled = false;
+};
+$('plist').onclick = e => run(async () => {
+  const d = e.target.dataset;
+  if (d.stock) { await api(`/api/admin/products/${d.stock}/stock`, { method: 'PATCH' }); await loadProducts(); }
+  if (d.delp && confirm('Delete this product?')) { await api('/api/admin/products/' + d.delp, { method: 'DELETE' }); await loadProducts(); }
+});
+
 async function loadReviews() {
-  try {
-    const rs = await api('/api/reviews');
-    $('rgrid').innerHTML = rs.length ? rs.map(r => `<div class="card rv"><div class="stars">${'★'.repeat(r.stars)}${'☆'.repeat(5 - r.stars)}</div><p>“${esc(r.text)}”</p>${r.image ? `<img alt="Customer screenshot" src="${esc(r.image)}" data-z="1">` : ''}<b>${esc(r.name)}</b></div>`).join('')
-      : '<p class="empty">Be the first to leave a review.</p>';
-  } catch { $('rgrid').innerHTML = ''; }
+  const rs = await api('/api/admin/reviews');
+  $('t-reviews').innerHTML = rs.map(r => `<div class="item"><span style="display:flex;gap:10px;align-items:center">${r.image ? `<img alt="" src="${esc(r.image)}">` : ''}<span><b>${esc(r.name)}</b> <span class="stars">${'★'.repeat(r.stars)}</span> <span class="pill ${r.approved ? 'ok' : ''}">${r.approved ? 'live' : 'pending'}</span><br><small>${esc(r.text)}</small></span></span>
+    <span class="g">${r.approved ? '' : `<button class="link" data-ap="${r._id}">Approve</button>`}<button class="link d" data-delr="${r._id}">Delete</button></span></div>`).join('') || '<p class="msg">No reviews yet.</p>';
 }
-$('rgrid').onclick = e => { if (e.target.dataset.z) { $('lb').innerHTML = `<img alt="" src="${esc(e.target.src)}">`; $('lb').classList.remove('hide'); } };
-$('lb').onclick = () => $('lb').classList.add('hide');
-$('rf').onsubmit = async e => {
-  e.preventDefault(); $('rbtn').disabled = true; $('rmsg').className = 'msg';
-  try {
-    await api('/api/reviews', { method: 'POST', body: new FormData(e.target) });
-    e.target.reset(); $('rmsg').textContent = 'Thank you! Your review will appear once approved.';
-  } catch (er) { $('rmsg').textContent = er.message; $('rmsg').className = 'msg err'; }
-  $('rbtn').disabled = false;
-};
+$('t-reviews').onclick = e => run(async () => {
+  const d = e.target.dataset;
+  if (d.ap) { await api(`/api/admin/reviews/${d.ap}/approve`, { method: 'PATCH' }); await loadReviews(); toast('Review is live'); }
+  if (d.delr && confirm('Delete this review?')) { await api('/api/admin/reviews/' + d.delr, { method: 'DELETE' }); await loadReviews(); }
+});
 
-// ---- Hero slideshow: uses your real product photos once you've posted some ----
-function heroFallback(bg1, bg2, shape) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500">
-    <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${bg1}"/><stop offset="1" stop-color="${bg2}"/></linearGradient>
-    <linearGradient id="b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eaf6ff"/><stop offset="1" stop-color="#bfe4ff"/></linearGradient></defs>
-    <rect width="900" height="500" fill="url(#g)"/>
-    <circle cx="130" cy="90" r="3" fill="#fff" opacity=".8"/><circle cx="770" cy="140" r="2.4" fill="#fff" opacity=".7"/>
-    <circle cx="640" cy="60" r="2" fill="#fff" opacity=".6"/><circle cx="220" cy="420" r="2.6" fill="#fff" opacity=".6"/>
-    ${shape}
-  </svg>`;
-  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+async function loadOrders() {
+  const os = await api('/api/admin/orders');
+  $('t-orders').innerHTML = os.map(o => `<div class="item"><span><b>${esc(o.customer.name)}</b> <span class="pill ${esc(o.status)}">${esc(o.status)}</span><br><small>${esc(o.customer.phone)}<br>${esc(o.customer.address)}<br>${o.items.map(i => `${esc(i.name)} ×${i.qty}`).join(', ')}<br>${esc(o.reference)} · ${new Date(o.createdAt).toLocaleString()}</small></span>
+    <span style="text-align:right"><b>${naira(o.amount)}</b><br><span class="g" style="margin-top:6px">
+    ${o.status !== 'paid' ? `<button class="link" data-paid="${o._id}">Mark paid</button>` : ''}
+    ${o.status !== 'cancelled' ? `<button class="link d" data-cancel="${o._id}">Cancel</button>` : ''}
+    </span></span></div>`).join('') || '<p class="msg">No orders yet.</p>';
 }
-const HERO_FALLBACKS = [
-  heroFallback('#7dd3fc', '#1d4ed8', `<rect x="390" y="190" width="120" height="150" rx="18" fill="url(#b)"/><rect x="420" y="150" width="60" height="45" fill="#1e3a8a"/><rect x="408" y="130" width="84" height="24" rx="6" fill="#0b1b3a"/><ellipse cx="450" cy="430" rx="160" ry="18" fill="#0b1b3a" opacity=".18"/>`),
-  heroFallback('#38bdf8', '#0b3fa0', `<rect x="360" y="210" width="90" height="150" rx="26" fill="url(#b)"/><rect x="470" y="230" width="90" height="150" rx="26" fill="#eaf6ff" opacity=".9"/><rect x="385" y="185" width="40" height="30" fill="#1e3a8a"/><rect x="495" y="205" width="40" height="30" fill="#1e3a8a"/><ellipse cx="450" cy="410" rx="180" ry="18" fill="#0b1b3a" opacity=".18"/>`),
-  heroFallback('#93e0ff', '#1d4ed8', `<path d="M370 220h160l-16 150H386z" fill="url(#b)"/><rect x="425" y="185" width="50" height="40" fill="#1e3a8a"/><path d="M450 185l-40-110M456 185l6-116M462 185l44-108" stroke="#0b1b3a" stroke-width="4" fill="none"/><ellipse cx="450" cy="400" rx="170" ry="18" fill="#0b1b3a" opacity=".16"/>`),
-  heroFallback('#5fc9fb', '#123f9e', `<rect x="400" y="170" width="100" height="180" rx="14" fill="url(#b)"/><rect x="425" y="140" width="50" height="34" fill="#1e3a8a"/><circle cx="450" cy="120" r="16" fill="#0b1b3a"/><ellipse cx="450" cy="420" rx="160" ry="18" fill="#0b1b3a" opacity=".18"/>`)
-];
-function initHeroSlides(slides) {
-  const wrap = $('heroSlides'), dots = $('heroDots');
-  wrap.innerHTML = slides.map((s, i) => `<div class="slide${i === 0 ? ' on' : ''}" style="background-image:url('${encodeURI(s)}')"></div>`).join('');
-  dots.innerHTML = slides.map((_, i) => `<button data-i="${i}" class="${i === 0 ? 'on' : ''}" aria-label="Slide ${i + 1}"></button>`).join('');
-  const els = [...wrap.children], dotEls = [...dots.children];
-  let i = 0, timer;
-  function show(n) {
-    i = (n + slides.length) % slides.length;
-    els.forEach((el, k) => el.classList.toggle('on', k === i));
-    dotEls.forEach((el, k) => el.classList.toggle('on', k === i));
-  }
-  function play() { clearInterval(timer); timer = setInterval(() => show(i + 1), 4200); }
-  dots.onclick = e => { const n = e.target.dataset.i; if (n !== undefined) { show(+n); play(); } };
-  play();
-}
+$('t-orders').onclick = e => run(async () => {
+  const d = e.target.dataset;
+  if (d.paid) { await api(`/api/admin/orders/${d.paid}/status`, { method: 'PATCH', headers: J, body: JSON.stringify({ status: 'paid' }) }); await loadOrders(); toast('Order marked paid'); }
+  if (d.cancel && confirm('Cancel this order?')) { await api(`/api/admin/orders/${d.cancel}/status`, { method: 'PATCH', headers: J, body: JSON.stringify({ status: 'cancelled' }) }); await loadOrders(); toast('Order cancelled'); }
+});
 
-$('y').textContent = new Date().getFullYear();
-(async () => {
-  let loaded = false;
-  try { products = await api('/api/products'); loaded = true; }
-  catch { $('grid').innerHTML = '<p class="empty">Could not load products.</p>'; }
-  // Only clean the saved cart when products actually loaded, so a network hiccup doesn't wipe it.
-  if (loaded) cart = cart.filter(c => products.some(p => p._id === c.id && p.inStock));
-  const withPhotos = products.filter(p => p.image).map(p => p.image);
-  initHeroSlides(withPhotos.length ? withPhotos.slice(0, 5) : HERO_FALLBACKS);
-  if (loaded) renderShop();
-  renderCart(); loadReviews();
-})();
+api('/api/admin/me').then(showDash).catch(showLogin);
