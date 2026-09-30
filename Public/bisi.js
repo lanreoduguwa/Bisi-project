@@ -170,9 +170,9 @@ $("y").textContent = new Date().getFullYear();
   catch { $("grid").innerHTML = `<p style="text-align:center;grid-column:1/-1;color:var(--mut)">Could not load products.</p>`; }
   // Only clean the saved cart when products actually loaded, so a network hiccup doesn't wipe it.
   if (loaded) cart = cart.filter(c => products.some(p => p._id === c.id && p.inStock));
-  // Hero shows your real product photos when at least 2 exist with images; otherwise the illustrated fallback.
+  // Hero shows your real product photos as soon as at least one exists; otherwise the illustrated fallback.
   const withPhotos = products.filter(p => p.image).map(p => p.image);
-  initHeroSlides(withPhotos.length >= 2 ? withPhotos.slice(0, 5) : HERO_FALLBACKS);
+  initHeroSlides(withPhotos.length ? withPhotos.slice(0, 5) : HERO_FALLBACKS);
   if (loaded) renderShop();
   renderCart(); loadReviews();
 })();
