@@ -6,6 +6,9 @@ const WA_FOOTER = "2347010389864";
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
 const naira = n => "₦" + Number(n).toLocaleString();
+// Ask Cloudinary for a smaller, compressed copy (faster on phones). Other URLs are left alone.
+const cl = (url, w) => String(url).includes("res.cloudinary.com")
+  ? String(url).replace("/upload/", `/upload/w_${w},q_auto,f_auto/`) : url;
 function toast(t) { const e = $("toast"); e.textContent = t; e.classList.add("s"); setTimeout(() => e.classList.remove("s"), 2400); }
 async function api(url, opts) {
   const r = await fetch(url, opts);
@@ -49,7 +52,7 @@ function renderShop() {
   const list = products.filter(p => filter === "All" || p.category === filter);
   $("grid").innerHTML = list.length ? list.map(p => {
     const fb = bottle(p.category);
-    return `<div class="card">${p.inStock ? "" : '<span class="sold">Sold out</span>'}<img alt="${esc(p.name)}" src="${esc(p.image || fb)}" data-cat="${esc(p.category)}"><div class="b"><div class="tag">${esc(p.category)}</div><h3>${esc(p.name)}</h3><p>${esc(p.description)}</p><div class="row"><span class="price">${naira(p.price)}</span><button class="btn" data-add="${p._id}" ${p.inStock ? "" : "disabled"}>Add to cart</button></div></div></div>`;
+    return `<div class="card">${p.inStock ? "" : '<span class="sold">Sold out</span>'}<img loading="lazy" alt="${esc(p.name)}" src="${esc(p.image ? cl(p.image, 600) : fb)}" data-cat="${esc(p.category)}"><div class="b"><div class="tag">${esc(p.category)}</div><h3>${esc(p.name)}</h3><p>${esc(p.description)}</p><div class="row"><span class="price">${naira(p.price)}</span><button class="btn" data-add="${p._id}" ${p.inStock ? "" : "disabled"}>Add to cart</button></div></div></div>`;
   }).join("") : `<p style="text-align:center;grid-column:1/-1;color:var(--mut)">No products in this category yet.</p>`;
 }
 $("chips").onclick = e => { if (e.target.dataset.c) { filter = e.target.dataset.c; renderShop(); } };
@@ -111,7 +114,7 @@ $("newOrder").onclick = () => { $("payBox").classList.add("hide"); $("co").class
 async function loadReviews() {
   try {
     const rs = await api("/api/reviews");
-    $("rgrid").innerHTML = rs.length ? rs.map(r => `<div class="card rv"><div class="stars">${"★".repeat(r.stars)}${"☆".repeat(5 - r.stars)}</div><p>"${esc(r.text)}"</p>${r.image ? `<img alt="Customer screenshot" src="${esc(r.image)}" data-z="1">` : ""}<b>${esc(r.name)}</b></div>`).join("")
+    $("rgrid").innerHTML = rs.length ? rs.map(r => `<div class="card rv"><div class="stars">${"★".repeat(r.stars)}${"☆".repeat(5 - r.stars)}</div><p>"${esc(r.text)}"</p>${r.image ? `<img loading="lazy" alt="Customer screenshot" src="${esc(r.image)}" data-z="1">` : ""}<b>${esc(r.name)}</b></div>`).join("")
       : `<p style="text-align:center;grid-column:1/-1;color:var(--mut)">Be the first to leave a review.</p>`;
   } catch { $("rgrid").innerHTML = ""; }
 }
@@ -144,6 +147,7 @@ const HERO_FALLBACKS = [
 let heroTimer;
 function initHeroSlides(slides) {
   const wrap = $("heroSlides"), dots = $("heroDots");
+  clearInterval(heroTimer);
   wrap.innerHTML = "";
   slides.forEach((s, i) => {
     const el = document.createElement("div");
@@ -152,6 +156,8 @@ function initHeroSlides(slides) {
     el.style.backgroundImage = `url("${String(s).replace(/"/g, "%22")}")`;
     wrap.appendChild(el);
   });
+  // One photo only: no dots and no timer needed.
+  if (slides.length < 2) { dots.innerHTML = ""; return; }
   dots.innerHTML = slides.map((_, i) => `<button data-i="${i}" class="${i === 0 ? "on" : ""}" aria-label="Slide ${i + 1}"></button>`).join("");
   const els = [...wrap.children], dotEls = [...dots.children];
   let i = 0;
@@ -170,8 +176,8 @@ $("y").textContent = new Date().getFullYear();
   catch { $("grid").innerHTML = `<p style="text-align:center;grid-column:1/-1;color:var(--mut)">Could not load products.</p>`; }
   // Only clean the saved cart when products actually loaded, so a network hiccup doesn't wipe it.
   if (loaded) cart = cart.filter(c => products.some(p => p._id === c.id && p.inStock));
-  // Hero shows your real product photos as soon as at least one exists; otherwise the illustrated fallback.
-  const withPhotos = products.filter(p => p.image).map(p => p.image);
+  // Hero shows your real product photos as soon as one exists; otherwise the illustrated fallback.
+  const withPhotos = products.filter(p => p.image).map(p => cl(p.image, 1400));
   initHeroSlides(withPhotos.length ? withPhotos.slice(0, 5) : HERO_FALLBACKS);
   if (loaded) renderShop();
   renderCart(); loadReviews();
