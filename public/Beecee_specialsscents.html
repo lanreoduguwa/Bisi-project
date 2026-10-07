@@ -39,7 +39,17 @@
 
 <section id="reviews"><div class="wrap">
 <div class="head"><h2>Customer Reviews</h2><p>Real words from happy customers</p></div>
-<div class="grid" id="rgrid"></div>
+
+<div class="rv-wrap" id="rvWrap">
+  <div class="rv-stage"><div class="rv-page" id="rgrid"></div></div>
+  <div class="rv-ctrl" id="rvCtrl">
+    <button type="button" id="rprev" aria-label="Previous reviews">‹</button>
+    <div class="rv-dots" id="rdots"></div>
+    <button type="button" id="rnext" aria-label="Next reviews">›</button>
+  </div>
+  <div class="rv-bar"><i id="rbar"></i></div>
+</div>
+
 <div class="panel" style="margin-top:32px"><h3 style="margin-bottom:4px">Share your experience</h3>
 <form id="rf">
 <label>Your name</label><input id="rn" name="name" required maxlength="40">
