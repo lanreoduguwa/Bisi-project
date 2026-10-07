@@ -140,14 +140,71 @@ function showPaymentInfo(r) {
 }
 $("newOrder").onclick = () => { $("payBox").classList.add("hide"); $("co").classList.remove("hide"); $("co").reset(); };
 
-// ---------- Reviews ----------
+// ---------- Reviews (animated carousel) ----------
+let rvs = [], rvPage = 0, rvBusy = false;
+const rvPer = () => innerWidth > 900 ? 3 : innerWidth > 600 ? 2 : 1;
+const rvReduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function reviewCard(r, i) {
+  return `<div class="card rv" style="--d:${i * 120}ms"><div class="stars">${"★".repeat(r.stars)}${"☆".repeat(5 - r.stars)}</div><p>"${esc(r.text)}"</p>${r.image ? `<img loading="lazy" alt="Customer screenshot" src="${esc(r.image)}" data-z="1">` : ""}<b>${esc(r.name)}</b></div>`;
+}
+
+// restart the progress bar; when it finishes, the next page is shown
+function restartBar() {
+  const bar = $("rbar");
+  bar.classList.remove("run"); void bar.offsetWidth;
+  if (!rvReduced() && rvs.length > rvPer()) bar.classList.add("run");
+}
+
+function renderReviewPage(dir = 1) {
+  const n = rvPer(), box = $("rgrid"), len = rvs.length;
+  const pages = Math.max(1, Math.ceil(len / n));
+  rvPage = (rvPage + pages) % pages;
+  // when the last page is short, fill it from the start so it never looks half empty
+  const slice = len <= n ? rvs : Array.from({ length: n }, (_, k) => rvs[(rvPage * n + k) % len]);
+  box.style.setProperty("--n", Math.min(n, len));
+  box.dataset.dir = dir;
+  box.innerHTML = slice.map(reviewCard).join("");
+  box.classList.remove("rv-anim", "rv-leave"); void box.offsetWidth; box.classList.add("rv-anim");
+  $("rdots").innerHTML = pages > 1
+    ? Array.from({ length: pages }, (_, i) => `<button type="button" data-p="${i}" class="${i === rvPage ? "on" : ""}" aria-label="Reviews page ${i + 1}"></button>`).join("") : "";
+  $("rvCtrl").classList.toggle("hide", pages < 2);
+  restartBar();
+}
+
+// fade the current cards out, then swap in the next page
+function goReviews(p, dir = 1) {
+  if (rvBusy || rvs.length <= rvPer()) return;
+  rvBusy = true;
+  const box = $("rgrid");
+  if (rvReduced()) { rvPage = p; renderReviewPage(dir); rvBusy = false; return; }
+  $("rbar").classList.remove("run");
+  box.classList.remove("rv-anim"); box.classList.add("rv-leave");
+  setTimeout(() => { rvPage = p; renderReviewPage(dir); rvBusy = false; }, 280);
+}
+
 async function loadReviews() {
   try {
-    const rs = await api("/api/reviews");
-    $("rgrid").innerHTML = rs.length ? rs.map(r => `<div class="card rv"><div class="stars">${"★".repeat(r.stars)}${"☆".repeat(5 - r.stars)}</div><p>"${esc(r.text)}"</p>${r.image ? `<img loading="lazy" alt="Customer screenshot" src="${esc(r.image)}" data-z="1">` : ""}<b>${esc(r.name)}</b></div>`).join("")
-      : `<p style="text-align:center;grid-column:1/-1;color:var(--mut)">Be the first to leave a review.</p>`;
-  } catch { $("rgrid").innerHTML = ""; }
+    rvs = await api("/api/reviews");
+    if (!rvs.length) {
+      $("rgrid").style.setProperty("--n", 1);
+      $("rgrid").innerHTML = `<p style="text-align:center;color:var(--mut)">Be the first to leave a review.</p>`;
+      $("rvCtrl").classList.add("hide"); return;
+    }
+    rvPage = 0; renderReviewPage();
+  } catch { $("rgrid").innerHTML = ""; $("rvCtrl").classList.add("hide"); }
 }
+
+// the progress bar finishing is what advances to the next page
+$("rbar").addEventListener("animationend", () => goReviews(rvPage + 1, 1));
+$("rnext").onclick = () => goReviews(rvPage + 1, 1);
+$("rprev").onclick = () => goReviews(rvPage - 1, -1);
+$("rdots").onclick = e => { const p = e.target.dataset.p; if (p !== undefined) goReviews(+p, +p > rvPage ? 1 : -1); };
+
+// cards per page changes with screen size, so rebuild when the window is resized
+let rvRz;
+addEventListener("resize", () => { clearTimeout(rvRz); rvRz = setTimeout(() => { if (rvs.length) { rvPage = 0; renderReviewPage(); } }, 250); });
+
 $("rgrid").onclick = e => { if (e.target.dataset.z) { $("lb").innerHTML = `<img alt="" src="${esc(e.target.src)}">`; $("lb").classList.remove("hide"); } };
 $("lb").onclick = () => $("lb").classList.add("hide");
 $("rf").onsubmit = async e => {

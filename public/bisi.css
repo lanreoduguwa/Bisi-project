@@ -108,12 +108,42 @@ footer{background:var(--ink);color:#cfe3ff;text-align:center;padding:36px 20px;f
 .pd-row{display:flex;justify-content:space-between;font-size:14px;padding:4px 0}
 .msg{font-size:13px;color:var(--mut);margin:8px 0 0}
 
+/* ---------- REVIEWS CAROUSEL ---------- */
+.rv-wrap{position:relative}
+.rv-stage{overflow:hidden;padding:10px 4px 18px}
+.rv-page{display:grid;grid-template-columns:repeat(var(--n,3),1fr);gap:20px;align-items:stretch}
+.rv-page .rv{display:flex;flex-direction:column}
+.rv-page .rv b{margin-top:auto}
+
+/* cards slide, scale and un-blur in, one after another */
+.rv-page.rv-anim .rv{animation:rv-in .7s cubic-bezier(.2,.8,.2,1) backwards;animation-delay:var(--d,0ms)}
+.rv-page[data-dir="-1"].rv-anim .rv{animation-name:rv-in-back}
+.rv-page.rv-leave .rv{animation:rv-out .28s ease forwards}
+@keyframes rv-in{from{opacity:0;transform:translateX(40px) scale(.94);filter:blur(6px)}to{opacity:1;transform:none;filter:blur(0)}}
+@keyframes rv-in-back{from{opacity:0;transform:translateX(-40px) scale(.94);filter:blur(6px)}to{opacity:1;transform:none;filter:blur(0)}}
+@keyframes rv-out{to{opacity:0;transform:translateY(-14px) scale(.97);filter:blur(4px)}}
+
+.rv-ctrl{display:flex;align-items:center;justify-content:center;gap:16px}
+.rv-ctrl>button{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--blue);font-size:22px;line-height:1;cursor:pointer;transition:.2s}
+.rv-ctrl>button:hover{background:var(--blue);color:#fff;transform:scale(1.08)}
+.rv-dots{display:flex;gap:8px}
+.rv-dots button{width:9px;height:9px;padding:0;border-radius:99px;border:0;background:var(--line);cursor:pointer;transition:.35s}
+.rv-dots button.on{width:28px;background:var(--blue)}
+
+/* progress bar = the timer. When it finishes, the next page shows. */
+.rv-bar{height:3px;background:var(--line);border-radius:99px;max-width:220px;margin:14px auto 0;overflow:hidden}
+.rv-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--sky),var(--blue));border-radius:99px}
+.rv-bar i.run{animation:rv-bar 6s linear forwards}
+.rv-wrap:hover .rv-bar i,.rv-wrap:focus-within .rv-bar i{animation-play-state:paused}
+@keyframes rv-bar{from{width:0}to{width:100%}}
+
 /* Tablets: stack the collection, text on top, moving window below */
 @media(max-width:900px){
   .shop-split{grid-template-columns:1fr;gap:26px}
   .shop-intro{text-align:center}
   .shop-intro .chips{justify-content:center}
   .shop-intro .hint{margin-bottom:18px}
+  .rv-page{gap:14px}
 }
 
 /* ---------- Phones ---------- */
@@ -141,10 +171,9 @@ footer{background:var(--ink);color:#cfe3ff;text-align:center;padding:36px 20px;f
   input,select,textarea{font-size:16px}
 }
 
-/* Small phones: two products per row, reviews stay single column */
+/* Small phones: two products per row */
 @media(max-width:520px){
   .grid{grid-template-columns:repeat(2,1fr);gap:12px}
-  #rgrid.grid{grid-template-columns:1fr}
   .marquee.static{grid-template-columns:repeat(2,1fr)}
   .lane{padding:6px 2px}
   .card .b{padding:12px}
@@ -159,4 +188,6 @@ footer{background:var(--ink);color:#cfe3ff;text-align:center;padding:36px 20px;f
   .track{animation:none}
   .lane{overflow-y:auto}
   .track>.card[aria-hidden="true"]{display:none}
+  .rv-page.rv-anim .rv,.rv-page.rv-leave .rv{animation:none}
+  .rv-bar{display:none}
 }
