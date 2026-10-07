@@ -1,4 +1,5 @@
 :root{--sky:#38bdf8;--sky2:#e0f2fe;--blue:#1d4ed8;--bg:#f0f9ff;--card:#fff;--ink:#0b1b3a;--mut:#5b6b8c;--line:#d5e6f7;
+--mh:700px;--mg:16px;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 /* Dark mode intentionally disabled: the shop always uses the sky-blue brand theme,
    regardless of the visitor's phone/browser setting, for consistent branding. */
@@ -57,6 +58,32 @@ section{padding:60px 0}
 .row{display:flex;justify-content:space-between;align-items:center;gap:8px}.price{font-weight:600;color:var(--blue)}
 .card .btn{padding:8px 16px;font-size:12px}
 .sold{position:absolute;top:12px;left:12px;background:#e11d48;color:#fff;font-size:11px;padding:3px 10px;border-radius:99px}
+
+/* ---------- COLLECTION: text + filters on the left, moving product column on the right ---------- */
+.shop-split{display:grid;grid-template-columns:.8fr 1.4fr;gap:44px;align-items:center}
+.shop-intro h2{font-size:32px}
+.shop-intro p{color:var(--mut);margin:6px 0 0}
+.shop-intro .hint{font-size:13px;margin:10px 0 22px}
+.shop-intro .chips{justify-content:flex-start;margin-bottom:0}
+
+/* The moving window: clips the lanes and fades the top and bottom edges */
+.marquee{height:var(--mh);display:grid;grid-template-columns:1fr 1fr;gap:var(--mg);overflow:hidden;
+-webkit-mask-image:linear-gradient(to bottom,transparent,#000 10%,#000 90%,transparent);
+mask-image:linear-gradient(to bottom,transparent,#000 10%,#000 90%,transparent)}
+.lane{overflow:hidden;padding:8px}
+.track{will-change:transform;animation:mq-up 40s linear infinite}
+.lane.down .track{animation-name:mq-down}
+/* margin (not gap) between cards keeps the loop exactly seamless at -50% */
+.track>.card{margin-bottom:var(--mg)}
+/* each track holds the list twice, so moving it -50% lands exactly on the start */
+@keyframes mq-up{from{transform:translateY(0)}to{transform:translateY(-50%)}}
+@keyframes mq-down{from{transform:translateY(-50%)}to{transform:translateY(0)}}
+/* pause while hovering, tapping or using the keyboard so people can read and press Add to cart */
+.marquee:hover .track,.marquee:focus-within .track{animation-play-state:paused}
+/* Few products: no movement, just a normal grid */
+.marquee.static{height:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr));overflow:visible;-webkit-mask-image:none;mask-image:none}
+.marquee .empty{grid-column:1/-1;text-align:center;color:var(--mut)}
+
 .feat{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;text-align:center}
 .feat div{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:24px}.feat b{display:block;font-size:28px}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:24px;max-width:640px;margin:auto}
@@ -81,6 +108,14 @@ footer{background:var(--ink);color:#cfe3ff;text-align:center;padding:36px 20px;f
 .pd-row{display:flex;justify-content:space-between;font-size:14px;padding:4px 0}
 .msg{font-size:13px;color:var(--mut);margin:8px 0 0}
 
+/* Tablets: stack the collection, text on top, moving window below */
+@media(max-width:900px){
+  .shop-split{grid-template-columns:1fr;gap:26px}
+  .shop-intro{text-align:center}
+  .shop-intro .chips{justify-content:center}
+  .shop-intro .hint{margin-bottom:18px}
+}
+
 /* ---------- Phones ---------- */
 @media(max-width:700px){
   /* Nav: logo on the first row, links + Cart on the second, all inside the bar */
@@ -99,8 +134,9 @@ footer{background:var(--ink);color:#cfe3ff;text-align:center;padding:36px 20px;f
   .hero-dots{bottom:14px}
 
   section{padding:40px 0}
-  .head h2{font-size:26px}
+  .head h2,.shop-intro h2{font-size:26px}
   .drawer{padding:16px}
+  :root{--mh:560px;--mg:12px}
   /* 16px stops iPhone Safari zooming in when a field is tapped */
   input,select,textarea{font-size:16px}
 }
@@ -109,9 +145,18 @@ footer{background:var(--ink);color:#cfe3ff;text-align:center;padding:36px 20px;f
 @media(max-width:520px){
   .grid{grid-template-columns:repeat(2,1fr);gap:12px}
   #rgrid.grid{grid-template-columns:1fr}
+  .marquee.static{grid-template-columns:repeat(2,1fr)}
+  .lane{padding:6px 2px}
   .card .b{padding:12px}
   .card h3{font-size:15px}
   .card p{font-size:12px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .row{flex-direction:column;align-items:flex-start}
   .card .btn{width:100%;text-align:center}
+}
+
+/* Visitors who turn on "reduce motion": no movement, columns scroll by hand, duplicates hidden */
+@media(prefers-reduced-motion:reduce){
+  .track{animation:none}
+  .lane{overflow-y:auto}
+  .track>.card[aria-hidden="true"]{display:none}
 }

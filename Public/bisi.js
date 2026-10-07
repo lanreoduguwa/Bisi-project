@@ -46,14 +46,44 @@ let products = [], filter = "All", cart = [];
 try { cart = JSON.parse(localStorage.getItem("bs_cart")) || []; } catch {}
 const saveCart = () => { try { localStorage.setItem("bs_cart", JSON.stringify(cart)); } catch {} };
 
+// One product card. dup=true marks the copies that only exist to make the loop seamless:
+// they are hidden from screen readers and skipped by the keyboard.
+function cardHTML(p, dup) {
+  const fb = bottle(p.category);
+  return `<div class="card"${dup ? ' aria-hidden="true"' : ""}>${p.inStock ? "" : '<span class="sold">Sold out</span>'}<img decoding="async" alt="${dup ? "" : esc(p.name)}" src="${esc(p.image ? cl(p.image, 500) : fb)}" data-cat="${esc(p.category)}"><div class="b"><div class="tag">${esc(p.category)}</div><h3>${esc(p.name)}</h3><p>${esc(p.description)}</p><div class="row"><span class="price">${naira(p.price)}</span><button class="btn" data-add="${p._id}" ${p.inStock ? "" : "disabled"}${dup ? ' tabindex="-1"' : ""}>Add to cart</button></div></div></div>`;
+}
+
 function renderShop() {
   const CATS = ["Perfume", "Body Spray", "Body Mist", "Perfume Oil", "Diffuser"];
   $("chips").innerHTML = ["All", ...CATS].map(c => `<button class="chip ${c === filter ? "on" : ""}" data-c="${c}">${c}</button>`).join("");
   const list = products.filter(p => filter === "All" || p.category === filter);
-  $("grid").innerHTML = list.length ? list.map(p => {
-    const fb = bottle(p.category);
-    return `<div class="card">${p.inStock ? "" : '<span class="sold">Sold out</span>'}<img loading="lazy" alt="${esc(p.name)}" src="${esc(p.image ? cl(p.image, 600) : fb)}" data-cat="${esc(p.category)}"><div class="b"><div class="tag">${esc(p.category)}</div><h3>${esc(p.name)}</h3><p>${esc(p.description)}</p><div class="row"><span class="price">${naira(p.price)}</span><button class="btn" data-add="${p._id}" ${p.inStock ? "" : "disabled"}>Add to cart</button></div></div></div>`;
-  }).join("") : `<p style="text-align:center;grid-column:1/-1;color:var(--mut)">No products in this category yet.</p>`;
+  const box = $("grid");
+
+  if (!list.length) {
+    box.className = "marquee static";
+    box.innerHTML = `<p class="empty">No products in this category yet.</p>`;
+    return;
+  }
+  // Fewer than 4 products: a loop would look empty and repeated, so show a normal grid.
+  if (list.length < 4) {
+    box.className = "marquee static";
+    box.innerHTML = list.map(p => cardHTML(p)).join("");
+    return;
+  }
+
+  // Moving collection: products alternate between two lanes. One lane moves up, the other down.
+  box.className = "marquee";
+  const lanes = [[], []];
+  list.forEach((p, i) => lanes[i % 2].push(p));
+  box.innerHTML = lanes.map((ls, k) => {
+    // make sure one lane has at least 4 cards, then repeat the whole set so -50% is a perfect loop
+    const seq = [];
+    while (seq.length < 4) seq.push(...ls);
+    const first = seq.map((p, i) => cardHTML(p, i >= ls.length)).join("");
+    const second = seq.map(p => cardHTML(p, true)).join("");
+    const secs = Math.max(30, seq.length * 9 + (k ? 6 : 0));   // more products = longer loop, same speed
+    return `<div class="lane${k ? " down" : ""}"><div class="track" style="animation-duration:${secs}s">${first}${second}</div></div>`;
+  }).join("");
 }
 $("chips").onclick = e => { if (e.target.dataset.c) { filter = e.target.dataset.c; renderShop(); } };
 $("grid").onclick = e => {
@@ -173,7 +203,7 @@ $("y").textContent = new Date().getFullYear();
 (async () => {
   let loaded = false;
   try { products = await api("/api/products"); loaded = true; }
-  catch { $("grid").innerHTML = `<p style="text-align:center;grid-column:1/-1;color:var(--mut)">Could not load products.</p>`; }
+  catch { $("grid").className = "marquee static"; $("grid").innerHTML = `<p class="empty">Could not load products.</p>`; }
   // Only clean the saved cart when products actually loaded, so a network hiccup doesn't wipe it.
   if (loaded) cart = cart.filter(c => products.some(p => p._id === c.id && p.inStock));
   // Hero shows your real product photos as soon as one exists; otherwise the illustrated fallback.
