@@ -9,6 +9,7 @@ const naira = n => "₦" + Number(n).toLocaleString();
 // Ask Cloudinary for a smaller, compressed copy (faster on phones). Other URLs are left alone.
 const cl = (url, w) => String(url).includes("res.cloudinary.com")
   ? String(url).replace("/upload/", `/upload/w_${w},q_auto,f_auto/`) : url;
+const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 function toast(t) { const e = $("toast"); e.textContent = t; e.classList.add("s"); setTimeout(() => e.classList.remove("s"), 2400); }
 async function api(url, opts) {
   const r = await fetch(url, opts);
@@ -42,50 +43,118 @@ document.addEventListener("error", e => {
 }, true);
 
 // ---------- Products ----------
-let products = [], filter = "All", cart = [];
+let products = [], filter = "All", query = "", ready = false, cart = [];
 try { cart = JSON.parse(localStorage.getItem("bs_cart")) || []; } catch {}
 const saveCart = () => { try { localStorage.setItem("bs_cart", JSON.stringify(cart)); } catch {} };
 
-// One product card. dup=true marks the copies that only exist to make the loop seamless:
-// they are hidden from screen readers and skipped by the keyboard.
-function cardHTML(p, dup) {
+// One product card. i = its position on the page, used to stagger the slide-in.
+function cardHTML(p, i = 0) {
   const fb = bottle(p.category);
-  return `<div class="card"${dup ? ' aria-hidden="true"' : ""}>${p.inStock ? "" : '<span class="sold">Sold out</span>'}<img decoding="async" alt="${dup ? "" : esc(p.name)}" src="${esc(p.image ? cl(p.image, 500) : fb)}" data-cat="${esc(p.category)}"><div class="b"><div class="tag">${esc(p.category)}</div><h3>${esc(p.name)}</h3><p>${esc(p.description)}</p><div class="row"><span class="price">${naira(p.price)}</span><button class="btn" data-add="${p._id}" ${p.inStock ? "" : "disabled"}${dup ? ' tabindex="-1"' : ""}>Add to cart</button></div></div></div>`;
+  return `<div class="card" style="--d:${i * 120}ms">${p.inStock ? "" : '<span class="sold">Sold out</span>'}<img decoding="async" alt="${esc(p.name)}" src="${esc(p.image ? cl(p.image, 500) : fb)}" data-cat="${esc(p.category)}"><div class="b"><div class="tag">${esc(p.category)}</div><h3>${esc(p.name)}</h3><p>${esc(p.description)}</p><div class="row"><span class="price">${naira(p.price)}</span><button class="btn" data-add="${p._id}" ${p.inStock ? "" : "disabled"}>Add to cart</button></div></div></div>`;
+}
+
+// ---------- Collection carousel (same behaviour as the reviews) ----------
+let colList = [], colPage = 0, colBusy = false;
+const colPer = () => innerWidth > 900 ? 4 : innerWidth > 600 ? 3 : 2;
+
+// restart the progress bar; when it finishes, the next page is shown.
+// It does not run while someone has a search typed in, so results stay put while they read.
+function colRestartBar() {
+  const bar = $("cbar");
+  bar.classList.remove("run"); void bar.offsetWidth;
+  if (!reducedMotion() && colList.length > colPer() && !query.trim()) bar.classList.add("run");
+}
+
+function drawCollection(dir = 1) {
+  const box = $("grid"), n = colPer(), len = colList.length, searching = !!query.trim();
+
+  if (!len) {
+    box.className = "cl-page";
+    box.innerHTML = `<p class="empty">${searching
+      ? `No items match “${esc(query.trim())}”. Try another name, or choose All.`
+      : "No products in this category yet."}</p>`;
+    $("colCtrl").classList.add("hide");
+    $("cbar").classList.remove("run");
+    return;
+  }
+
+  const pages = Math.max(1, Math.ceil(len / n));
+  colPage = (colPage + pages) % pages;
+  // Browsing: if the last page is short, fill it from the start so it never looks half empty.
+  // Searching: show only the real matches.
+  const slice = len <= n ? colList
+    : searching ? colList.slice(colPage * n, colPage * n + n)
+    : Array.from({ length: n }, (_, k) => colList[(colPage * n + k) % len]);
+
+  box.style.setProperty("--n", n);
+  box.dataset.dir = dir;
+  box.innerHTML = slice.map(cardHTML).join("");
+  box.classList.remove("rv-anim", "rv-leave"); void box.offsetWidth; box.classList.add("rv-anim");
+  box.className = "cl-page rv-anim";
+
+  $("cdots").innerHTML = pages > 1
+    ? Array.from({ length: pages }, (_, i) => `<button type="button" data-p="${i}" class="${i === colPage ? "on" : ""}" aria-label="Products page ${i + 1}"></button>`).join("") : "";
+  $("colCtrl").classList.toggle("hide", pages < 2);
+  colRestartBar();
+}
+
+// fade the current cards out, then swap in the next page
+function goCollection(p, dir = 1) {
+  if (colBusy || colList.length <= colPer()) return;
+  colBusy = true;
+  const box = $("grid");
+  if (reducedMotion()) { colPage = p; drawCollection(dir); colBusy = false; return; }
+  $("cbar").classList.remove("run");
+  box.classList.remove("rv-anim"); box.classList.add("rv-leave");
+  setTimeout(() => { colPage = p; drawCollection(dir); colBusy = false; }, 280);
 }
 
 function renderShop() {
   const CATS = ["Perfume", "Body Spray", "Body Mist", "Perfume Oil", "Diffuser"];
   $("chips").innerHTML = ["All", ...CATS].map(c => `<button class="chip ${c === filter ? "on" : ""}" data-c="${c}">${c}</button>`).join("");
-  const list = products.filter(p => filter === "All" || p.category === filter);
-  const box = $("grid");
 
-  if (!list.length) {
-    box.className = "marquee static";
-    box.innerHTML = `<p class="empty">No products in this category yet.</p>`;
-    return;
-  }
-  // Fewer than 4 products: a loop would look empty and repeated, so show a normal grid.
-  if (list.length < 4) {
-    box.className = "marquee static";
-    box.innerHTML = list.map(p => cardHTML(p)).join("");
-    return;
-  }
+  // Every word typed must appear in the product's name, category or description.
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  colList = products.filter(p =>
+    (filter === "All" || p.category === filter) &&
+    words.every(w => `${p.name} ${p.category} ${p.description || ""}`.toLowerCase().includes(w)));
+  $("sCount").textContent = words.length && colList.length ? `${colList.length} item${colList.length > 1 ? "s" : ""} found` : "";
 
-  // Moving collection: products alternate between two lanes. One lane moves up, the other down.
-  box.className = "marquee";
-  const lanes = [[], []];
-  list.forEach((p, i) => lanes[i % 2].push(p));
-  box.innerHTML = lanes.map((ls, k) => {
-    // make sure one lane has at least 4 cards, then repeat the whole set so -50% is a perfect loop
-    const seq = [];
-    while (seq.length < 4) seq.push(...ls);
-    const first = seq.map((p, i) => cardHTML(p, i >= ls.length)).join("");
-    const second = seq.map(p => cardHTML(p, true)).join("");
-    const secs = Math.max(30, seq.length * 9 + (k ? 6 : 0));   // more products = longer loop, same speed
-    return `<div class="lane${k ? " down" : ""}"><div class="track" style="animation-duration:${secs}s">${first}${second}</div></div>`;
-  }).join("");
+  colPage = 0;
+  drawCollection(1);
 }
+
+// the progress bar finishing is what advances to the next page
+$("cbar").addEventListener("animationend", () => goCollection(colPage + 1, 1));
+$("cnext").onclick = () => goCollection(colPage + 1, 1);
+$("cprev").onclick = () => goCollection(colPage - 1, -1);
+$("cdots").onclick = e => { const p = e.target.dataset.p; if (p !== undefined) goCollection(+p, +p > colPage ? 1 : -1); };
+
+// swipe left / right on a phone to change page
+let swX = 0, swY = 0;
+$("colWrap").addEventListener("touchstart", e => { swX = e.touches[0].clientX; swY = e.touches[0].clientY; }, { passive: true });
+$("colWrap").addEventListener("touchend", e => {
+  const t = e.changedTouches[0], dx = t.clientX - swX, dy = t.clientY - swY;
+  if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) goCollection(colPage + (dx < 0 ? 1 : -1), dx < 0 ? 1 : -1);
+}, { passive: true });
+
+// products per page changes with screen size, so rebuild when the window is resized
+let colRz;
+addEventListener("resize", () => { clearTimeout(colRz); colRz = setTimeout(() => { if (ready) { colPage = 0; drawCollection(1); } }, 250); });
+
+// ---------- Filters + search ----------
 $("chips").onclick = e => { if (e.target.dataset.c) { filter = e.target.dataset.c; renderShop(); } };
+$("q").oninput = () => { query = $("q").value; if (ready) renderShop(); };
+$("searchForm").onsubmit = e => {
+  e.preventDefault();
+  query = $("q").value;
+  if (!ready) return;
+  renderShop();
+  if (query.trim()) {
+    if (document.activeElement) document.activeElement.blur();   // hides the phone keyboard
+    $("colWrap").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+};
 $("grid").onclick = e => {
   const id = e.target.dataset.add; if (!id) return;
   const c = cart.find(x => x.id === id); c ? c.qty = Math.min(20, c.qty + 1) : cart.push({ id, qty: 1 });
@@ -143,7 +212,7 @@ $("newOrder").onclick = () => { $("payBox").classList.add("hide"); $("co").class
 // ---------- Reviews (animated carousel) ----------
 let rvs = [], rvPage = 0, rvBusy = false;
 const rvPer = () => innerWidth > 900 ? 3 : innerWidth > 600 ? 2 : 1;
-const rvReduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+const rvReduced = reducedMotion;
 
 function reviewCard(r, i) {
   return `<div class="card rv" style="--d:${i * 120}ms"><div class="stars">${"★".repeat(r.stars)}${"☆".repeat(5 - r.stars)}</div><p>"${esc(r.text)}"</p>${r.image ? `<img loading="lazy" alt="Customer screenshot" src="${esc(r.image)}" data-z="1">` : ""}<b>${esc(r.name)}</b></div>`;
@@ -260,12 +329,16 @@ $("y").textContent = new Date().getFullYear();
 (async () => {
   let loaded = false;
   try { products = await api("/api/products"); loaded = true; }
-  catch { $("grid").className = "marquee static"; $("grid").innerHTML = `<p class="empty">Could not load products.</p>`; }
+  catch {
+    $("grid").className = "cl-page";
+    $("grid").innerHTML = `<p class="empty">Could not load products.</p>`;
+    $("colCtrl").classList.add("hide");
+  }
   // Only clean the saved cart when products actually loaded, so a network hiccup doesn't wipe it.
   if (loaded) cart = cart.filter(c => products.some(p => p._id === c.id && p.inStock));
   // Hero shows your real product photos as soon as one exists; otherwise the illustrated fallback.
   const withPhotos = products.filter(p => p.image).map(p => cl(p.image, 1400));
   initHeroSlides(withPhotos.length ? withPhotos.slice(0, 5) : HERO_FALLBACKS);
-  if (loaded) renderShop();
+  if (loaded) { ready = true; query = $("q").value; renderShop(); }
   renderCart(); loadReviews();
 })();

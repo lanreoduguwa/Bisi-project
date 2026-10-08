@@ -21,14 +21,25 @@
 <p>Perfumes, body sprays, body mists, perfume oils and diffusers, crafted to leave a fresh, unforgettable trail.</p>
 <a class="btn" href="#shop">Shop the collection</a></div></header>
 
-<section id="shop"><div class="wrap shop-split">
-<div class="shop-intro">
-<h2>Our Collection</h2>
-<p>Find your signature fragrance</p>
-<p class="hint">Hover or tap the collection to pause it.</p>
+<section id="shop"><div class="wrap">
+<div class="head"><h2>Our Collection</h2><p>Find your signature fragrance</p></div>
+
+<form class="search" id="searchForm" role="search">
+<input type="search" id="q" placeholder="Search perfume, mist, oil..." autocomplete="off" maxlength="60" aria-label="Search the collection">
+<button class="btn" type="submit">Search</button>
+</form>
+<p class="count" id="sCount" aria-live="polite"></p>
 <div class="chips" id="chips"></div>
+
+<div class="rv-wrap" id="colWrap">
+  <div class="rv-stage"><div class="cl-page" id="grid" aria-label="Our collection"></div></div>
+  <div class="rv-ctrl" id="colCtrl">
+    <button type="button" id="cprev" aria-label="Previous products">‹</button>
+    <div class="rv-dots" id="cdots"></div>
+    <button type="button" id="cnext" aria-label="Next products">›</button>
+  </div>
+  <div class="rv-bar"><i id="cbar"></i></div>
 </div>
-<div class="marquee" id="grid" aria-label="Our collection"></div>
 </div></section>
 
 <section id="about" style="padding-top:0"><div class="wrap"><div class="feat">
